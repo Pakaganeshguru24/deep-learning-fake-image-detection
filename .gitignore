@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ML/data artifacts (keep repo small)
+/dataset/
+/rvf10k/
+/models/
+
+# Nested project artifacts
+/deep-learning-fake-image-detection/dataset/
+/deep-learning-fake-image-detection/models/
+/deep-learning-fake-image-detection/app/models/
+
+# Uploaded/sample images
+/deep-learning-fake-image-detection/app/static/*.jpg
+/deep-learning-fake-image-detection/app/static/*.jpeg
+/deep-learning-fake-image-detection/app/static/*.png
+/deep-learning-fake-image-detection/app/static/*.webp
+
+# VS Code (optional)
+.vscode/
