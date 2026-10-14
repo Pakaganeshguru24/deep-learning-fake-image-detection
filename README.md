@@ -1,47 +1,81 @@
 # Fake Image Detection
 
-A Flask web application that classifies an uploaded image as **Real** or
-**Fake** using a trained TensorFlow/Keras EfficientNet model.
+A Flask web application that classifies uploaded images as **Real** or
+**Fake** using a TensorFlow/Keras EfficientNetB3 model.
 
-## Run the web app
+## Features
 
-The application needs a trained model at:
+- Upload images for real/fake prediction
+- Display the predicted label and confidence
+- Drag-and-drop upload support
+- Light and dark themes
+- TensorFlow/Keras EfficientNetB3 inference
+- Training and evaluation scripts
+- Deterministic dataset splitting
 
-```text
-app/models/best_model.keras
+## Requirements
+
+- Python 3.11 is recommended.
+- A TensorFlow-compatible system.
+- Approximately 49.7 MB for the included trained model, plus space for Python
+  dependencies.
+- Windows PowerShell for the setup commands below.
+
+## Setup and run
+
+Clone the repository and enter the nested project directory:
+
+```powershell
+git clone https://github.com/Pakaganeshguru24/deep-learning-fake-image-detection.git
+cd deep-learning-fake-image-detection
+cd deep-learning-fake-image-detection
 ```
 
-The model is intentionally excluded from Git because model files and datasets
-are large. Keep a copy in that location locally, or provide the model through
-your team's artifact storage before starting the app.
-
-### Windows PowerShell
-
-From the project directory:
+Create a virtual environment, install dependencies, and start the Flask app:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python app\app.py
 ```
 
-Open <http://127.0.0.1:5000> in a browser. Upload a JPG, JPEG, PNG, or other
-supported image format and select **Analyze image**.
-
-If PowerShell blocks virtual-environment activation, run this once in the
-current terminal:
+If PowerShell blocks virtual-environment activation, allow it for the current
+terminal session:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-The repository may contain a pre-existing local `.venv310` environment. It is
-not required for new setups; use the commands above to create a fresh one.
+Open the local application at:
 
-## Train and evaluate
+<http://127.0.0.1:5000>
 
-Training requires a local dataset with this structure:
+`127.0.0.1` is local-only. It is not a public hosted demo URL.
+
+The trained model is included in the repository at:
+
+```text
+app/models/best_model.keras
+```
+
+The application accepts these image extensions:
+
+```text
+BMP, GIF, JPEG, JPG, PNG, WEBP, TIF, TIFF
+```
+
+Uploaded files are limited to 8 MB and are stored temporarily in:
+
+```text
+app/static/uploads/
+```
+
+## Dataset
+
+The dataset is not included in the repository. Place a local dataset in this
+structure before training:
 
 ```text
 dataset/
@@ -56,8 +90,10 @@ dataset/
     └── real/
 ```
 
-These data files are intentionally ignored by Git. To create a deterministic
-strict split from existing splits, run:
+Run the following commands from the nested
+`deep-learning-fake-image-detection` directory.
+
+### Create a deterministic split
 
 ```powershell
 python app\build_stratified_splits.py `
@@ -71,7 +107,7 @@ python app\build_stratified_splits.py `
   --overwrite
 ```
 
-Then train:
+### Train the model
 
 ```powershell
 python app\train.py `
@@ -84,13 +120,23 @@ python app\train.py `
   --epochs-phase2 6
 ```
 
-Tune the validation threshold and evaluate the held-out test split:
+### Tune the classification threshold
 
 ```powershell
 python app\tune_threshold.py `
   --dataset-root dataset\strict_split `
   --model-path app\models\best_model.keras
+```
 
+The tuned threshold is saved at:
+
+```text
+app/models/threshold.json
+```
+
+### Evaluate the test split
+
+```powershell
 python app\eval_valid.py `
   --dataset-root dataset\strict_split `
   --split test `
@@ -98,7 +144,7 @@ python app\eval_valid.py `
   --progress-every 100
 ```
 
-The complete split, train, tune, and evaluation sequence can also be run with:
+### Run the complete pipeline
 
 ```powershell
 python app\run_strict_pipeline.py --overwrite-split
@@ -107,17 +153,36 @@ python app\run_strict_pipeline.py --overwrite-split
 ## Project structure
 
 ```text
-app/
-├── app.py                    # Flask web application and inference
-├── templates/index.html      # Upload and prediction UI
-├── train.py                 # Model training
-├── build_stratified_splits.py
-├── tune_threshold.py
-├── eval_valid.py
-└── run_strict_pipeline.py   # End-to-end training pipeline
-requirements.txt              # Reproducible runtime/training dependencies
+deep-learning-fake-image-detection/
+├── app/
+│   ├── app.py
+│   ├── models/
+│   │   └── best_model.keras
+│   ├── templates/
+│   │   └── index.html
+│   ├── train.py
+│   ├── build_stratified_splits.py
+│   ├── tune_threshold.py
+│   ├── eval_valid.py
+│   └── run_strict_pipeline.py
+├── requirements.txt
+├── .python-version
+└── README.md
 ```
 
-Runtime uploads are written to `app/static/uploads/`. Logs, datasets, model
-checkpoints, virtual environments, and generated reports are local artifacts
-and are excluded from version control.
+Configuration used by the Flask application is currently defined in
+`app.py`; there is no separate `config.py` file in this revision.
+
+## Important notes
+
+- Predictions are model-based estimates.
+- This project is not a definitive forensic or legal tool.
+- The dataset is not included.
+- Runtime uploads, generated reports, virtual environments, and dataset files
+  are excluded from version control.
+- Flask's development server should not be used for production deployment.
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for
+details.
