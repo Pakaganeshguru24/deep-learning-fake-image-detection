@@ -53,6 +53,8 @@ def main():
     strict_split_dir = os.path.abspath(
         args.strict_split_dir or os.path.join(args.dataset_root, "strict_split")
     )
+    model_path = os.path.abspath(args.model_path)
+    threshold_json = os.path.join(os.path.dirname(model_path), "threshold.json")
 
     py = sys.executable
 
@@ -86,7 +88,7 @@ def main():
             "--dataset-root",
             strict_split_dir,
             "--model-path",
-            os.path.abspath(args.model_path),
+            model_path,
             "--seed",
             str(args.seed),
             "--img-size",
@@ -107,9 +109,11 @@ def main():
             "--dataset-root",
             strict_split_dir,
             "--model-path",
-            os.path.abspath(args.model_path),
+            model_path,
             "--batch-size",
             str(max(16, args.batch_size)),
+            "--output-json",
+            threshold_json,
         ]
         run_step(tune_cmd, cwd=app_dir)
 
@@ -122,17 +126,20 @@ def main():
             "--split",
             "test",
             "--model-path",
-            os.path.abspath(args.model_path),
+            model_path,
             "--batch-size",
             str(max(16, args.batch_size)),
             "--progress-every",
             "100",
+            "--threshold-config",
+            threshold_json,
         ]
         run_step(eval_cmd, cwd=app_dir)
 
     print("\nStrict pipeline completed successfully.")
     print("Strict split root:", strict_split_dir)
-    print("Model path:", os.path.abspath(args.model_path))
+    print("Model path:", model_path)
+    print("Threshold artifact:", threshold_json)
 
 
 if __name__ == "__main__":

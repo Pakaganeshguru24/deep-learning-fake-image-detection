@@ -228,3 +228,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# Threshold artifact and evaluation reports
+/app/models/threshold.json
+/app/optional_tools/eval_results.txt
+/app/optional_tools/eval_error.txt
+

@@ -4,13 +4,16 @@ import numpy as np
 from keras.utils import load_img, img_to_array
 from keras.applications.efficientnet import preprocess_input
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge
 import os
 import time
 import json
 import tempfile
 import zipfile
+from config import load_threshold_settings, SUPPORTED_EXTENSIONS
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -93,13 +96,11 @@ else:
     TARGET_SIZE = (224, 224)
 print("Using input size for prediction:", TARGET_SIZE)
 
-# Tuned decision threshold for classifying an image as REAL.
-# Obtained from tune_threshold.py using validation F1-score.
-THRESHOLD = 0.47
-REAL_IF_HIGH_PROB = True
-UNCERTAINTY_MARGIN = 0.08
-TTA_STD_MAX = 0.12
+threshold_settings = load_threshold_settings()
+THRESHOLD = threshold_settings["threshold"]
+REAL_IF_HIGH_PROB = threshold_settings["real_if_high_prob"]
 ENABLE_RUNTIME_CALIBRATION = False
+ALLOWED_EXTENSIONS = set(SUPPORTED_EXTENSIONS)
 
 
 def calibrate_with_validation_data():
@@ -173,7 +174,22 @@ def calibrate_with_validation_data():
 if ENABLE_RUNTIME_CALIBRATION:
     calibrate_with_validation_data()
 else:
-    print("Runtime threshold calibration disabled. Using fixed threshold:", THRESHOLD)
+    if threshold_settings["loaded"]:
+        print(
+            "Runtime threshold calibration disabled. Loaded threshold artifact:",
+            threshold_settings["path"],
+            "threshold=",
+            THRESHOLD,
+            "real_if_high_prob=",
+            REAL_IF_HIGH_PROB,
+        )
+    else:
+        print("Runtime threshold calibration disabled. Using default threshold:", THRESHOLD)
+
+
+def _is_allowed_file(filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
 
 
 def predict_image(img_path):
@@ -220,7 +236,12 @@ def index():
     error = None
     if request.method == "POST":
         file = request.files.get("file")
-        if file and file.filename:
+        if not file or not file.filename:
+            error = "Please select an image file before submitting."
+        elif not _is_allowed_file(file.filename):
+            allowed = ", ".join(ext.upper().lstrip(".") for ext in sorted(ALLOWED_EXTENSIONS))
+            error = f"Unsupported file format. Allowed formats: {allowed}."
+        else:
             safe_name = secure_filename(file.filename)
             stamped_name = f"{int(time.time())}_{safe_name}"
             filepath = os.path.join(app.config["UPLOAD_FOLDER"], stamped_name)
@@ -247,6 +268,13 @@ def index():
                 image=uploaded_image,
                 error=error,
             )
+        return render_template(
+            "index.html",
+            prediction=prediction,
+            confidence=confidence,
+            prediction_note=prediction_note,
+            error=error,
+        )
 
     return render_template(
         "index.html",
@@ -257,5 +285,17 @@ def index():
     )
 
 
+@app.errorhandler(RequestEntityTooLarge)
+def handle_too_large_file(_error):
+    return (
+        render_template(
+            "index.html",
+            error="Uploaded file is too large. Maximum size is 8 MB.",
+        ),
+        413,
+    )
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    debug_mode = os.getenv("FLASK_DEBUG", "").strip().lower() in {"1", "true", "yes", "on"}
+    app.run(debug=debug_mode)

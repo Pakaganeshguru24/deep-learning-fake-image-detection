@@ -234,3 +234,7 @@ Thumbs.db
 
 # VS Code (optional)
 .vscode/
+# Threshold artifact and evaluation reports
+/deep-learning-fake-image-detection/app/models/threshold.json
+/deep-learning-fake-image-detection/app/optional_tools/eval_results.txt
+/deep-learning-fake-image-detection/app/optional_tools/eval_error.txt
