@@ -1,2 +1,1 @@
 
-fake-image-detection
