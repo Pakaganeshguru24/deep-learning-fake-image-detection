@@ -234,3 +234,6 @@ Thumbs.db
 
 # VS Code (optional)
 .vscode/
+
+# Local activation script
+/Activate.ps1
