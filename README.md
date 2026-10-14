@@ -1,23 +1,37 @@
 # Fake Image Detection
 
-A Flask web application that classifies an uploaded image as **Real** or
-**Fake** using a trained TensorFlow/Keras EfficientNet model.
+This repository contains a nested project directory:
 
-## Run the web app
+```text
+deep-learning-fake-image-detection/
+```
 
-The application needs a trained model at:
+All Python commands below must be run from that nested directory.
+
+## Clone and enter the project (Windows PowerShell)
+
+```powershell
+git clone https://github.com/Pakaganeshguru24/deep-learning-fake-image-detection.git
+cd deep-learning-fake-image-detection\deep-learning-fake-image-detection
+```
+
+## Required model file (not in Git)
+
+Inference requires this file:
 
 ```text
 app/models/best_model.keras
 ```
 
-The model is intentionally excluded from Git because model files and datasets
-are large. Keep a copy in that location locally, or provide the model through
-your team's artifact storage before starting the app.
+The model is intentionally excluded from Git, so you must provide it separately.
 
-### Windows PowerShell
+## Local development vs public demo
 
-From the project directory:
+- `http://127.0.0.1:5000` is a **local development URL** on your own machine.
+- It is **not** a hosted public demo.
+- To provide a public demo, deploy the Flask app and share the deployed URL.
+
+## Run the Flask app locally
 
 ```powershell
 python -m venv .venv
@@ -26,22 +40,20 @@ python -m pip install -r requirements.txt
 python app\app.py
 ```
 
-Open <http://127.0.0.1:5000> in a browser. Upload a JPG, JPEG, PNG, or other
-supported image format and select **Analyze image**.
+Open <http://127.0.0.1:5000>.
 
-If PowerShell blocks virtual-environment activation, run this once in the
-current terminal:
+Supported upload extensions: **BMP, GIF, JPG, JPEG, PNG, WEBP, TIF, TIFF**.
+
+Optional local debug mode:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+$env:FLASK_DEBUG = "1"
+python app\app.py
 ```
 
-The repository may contain a pre-existing local `.venv310` environment. It is
-not required for new setups; use the commands above to create a fresh one.
+## Training, threshold tuning, and evaluation
 
-## Train and evaluate
-
-Training requires a local dataset with this structure:
+Dataset files are intentionally excluded from Git. Place your local dataset under:
 
 ```text
 dataset/
@@ -56,8 +68,7 @@ dataset/
     └── real/
 ```
 
-These data files are intentionally ignored by Git. To create a deterministic
-strict split from existing splits, run:
+### 1) Build strict split
 
 ```powershell
 python app\build_stratified_splits.py `
@@ -71,7 +82,7 @@ python app\build_stratified_splits.py `
   --overwrite
 ```
 
-Then train:
+### 2) Train model
 
 ```powershell
 python app\train.py `
@@ -84,40 +95,32 @@ python app\train.py `
   --epochs-phase2 6
 ```
 
-Tune the validation threshold and evaluate the held-out test split:
+### 3) Tune threshold and persist artifact
 
 ```powershell
 python app\tune_threshold.py `
   --dataset-root dataset\strict_split `
-  --model-path app\models\best_model.keras
+  --model-path app\models\best_model.keras `
+  --output-json app\models\threshold.json
+```
 
+If `app/models/threshold.json` exists, inference/evaluation use it; otherwise they fall back to shared defaults.
+
+### 4) Evaluate
+
+```powershell
 python app\eval_valid.py `
   --dataset-root dataset\strict_split `
   --split test `
   --model-path app\models\best_model.keras `
+  --threshold-config app\models\threshold.json `
   --progress-every 100
 ```
 
-The complete split, train, tune, and evaluation sequence can also be run with:
+### 5) End-to-end strict pipeline
 
 ```powershell
 python app\run_strict_pipeline.py --overwrite-split
 ```
 
-## Project structure
-
-```text
-app/
-├── app.py                    # Flask web application and inference
-├── templates/index.html      # Upload and prediction UI
-├── train.py                 # Model training
-├── build_stratified_splits.py
-├── tune_threshold.py
-├── eval_valid.py
-└── run_strict_pipeline.py   # End-to-end training pipeline
-requirements.txt              # Reproducible runtime/training dependencies
-```
-
-Runtime uploads are written to `app/static/uploads/`. Logs, datasets, model
-checkpoints, virtual environments, and generated reports are local artifacts
-and are excluded from version control.
+The strict pipeline runs split → train → tune (writes threshold JSON) → test evaluation.

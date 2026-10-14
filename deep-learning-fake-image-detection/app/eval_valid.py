@@ -4,6 +4,11 @@ import time
 import numpy as np
 import tensorflow as tf
 from keras.applications.efficientnet import preprocess_input
+from config import (
+    THRESHOLD_ARTIFACT_PATH,
+    load_threshold_settings,
+    SUPPORTED_EXTENSIONS,
+)
 
 # Match paths and settings from train.py
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,10 +19,7 @@ VALID_DIR = os.path.join(DATASET_ROOT, "valid")
 TEST_DIR = os.path.join(DATASET_ROOT, "test")
 
 MODEL_PATH = os.path.join(APP_DIR, "models", "best_model.keras")
-
-# Use the same tuned threshold as the web app (see app.py / tune_threshold.py)
-THRESHOLD = 0.45
-SUPPORTED_EXTS = (".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp", ".tif", ".tiff")
+SUPPORTED_EXTS = SUPPORTED_EXTENSIONS
 
 
 def parse_args():
@@ -51,8 +53,25 @@ def parse_args():
     parser.add_argument(
         "--threshold",
         type=float,
-        default=THRESHOLD,
-        help="Classification threshold for converting probabilities to labels.",
+        default=None,
+        help="Classification threshold for converting probabilities to labels (overrides config/artifact).",
+    )
+    parser.add_argument(
+        "--real-if-high-prob",
+        action="store_true",
+        default=None,
+        help="Interpret high model probability as class 'real'.",
+    )
+    parser.add_argument(
+        "--real-if-low-prob",
+        action="store_true",
+        default=False,
+        help="Interpret low model probability as class 'real'.",
+    )
+    parser.add_argument(
+        "--threshold-config",
+        default=THRESHOLD_ARTIFACT_PATH,
+        help="Path to threshold JSON artifact produced by tune_threshold.py.",
     )
     parser.add_argument(
         "--batch-size",
@@ -103,6 +122,7 @@ def evaluate_directory(
     split_name,
     img_size,
     threshold,
+    real_if_high_prob,
     batch_size,
     allow_mismatch,
     bad_files_report,
@@ -229,7 +249,10 @@ def evaluate_directory(
 
     true = np.array(good_true, dtype=np.int32)
     probs = np.array(good_probs, dtype=np.float32)
-    preds = (probs > threshold).astype(np.int32)
+    if real_if_high_prob:
+        preds = (probs > threshold).astype(np.int32)
+    else:
+        preds = (probs <= threshold).astype(np.int32)
 
     bce = tf.keras.losses.binary_crossentropy(
         tf.convert_to_tensor(true, dtype=tf.float32),
@@ -272,7 +295,22 @@ dataset_root = os.path.abspath(args.dataset_root)
 train_dir = os.path.join(dataset_root, "train")
 valid_dir = os.path.join(dataset_root, "valid")
 test_dir = os.path.join(dataset_root, "test")
-threshold = float(args.threshold)
+if args.real_if_low_prob:
+    direction_override = False
+elif args.real_if_high_prob is True:
+    direction_override = True
+else:
+    direction_override = None
+
+threshold_settings = load_threshold_settings(os.path.abspath(args.threshold_config))
+if args.threshold is None:
+    threshold = float(threshold_settings["threshold"])
+else:
+    threshold = float(args.threshold)
+if direction_override is None:
+    real_if_high_prob = bool(threshold_settings["real_if_high_prob"])
+else:
+    real_if_high_prob = bool(direction_override)
 batch_size = int(args.batch_size)
 allow_mismatch = bool(args.allow_mismatch)
 bad_files_report = os.path.abspath(args.bad_files_report)
@@ -301,8 +339,10 @@ for split_name, split_dir in eval_targets:
 
 print("Loading model from:", model_path)
 print("Using threshold:", threshold)
+print("Using real_if_high_prob:", real_if_high_prob)
 print("Using batch size:", batch_size)
 print("Dataset root:", dataset_root)
+print("Threshold config path:", os.path.abspath(args.threshold_config))
 print("Progress update every:", progress_every, "images")
 print("Bad files report path:", bad_files_report)
 model = tf.keras.models.load_model(model_path)
@@ -323,6 +363,7 @@ for split_name, split_dir in eval_targets:
         split_name=split_name,
         img_size=img_size,
         threshold=threshold,
+        real_if_high_prob=real_if_high_prob,
         batch_size=batch_size,
         allow_mismatch=allow_mismatch,
         bad_files_report=bad_files_report,

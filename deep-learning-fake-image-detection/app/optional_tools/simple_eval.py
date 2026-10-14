@@ -13,9 +13,14 @@ try:
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
     PROJECT_ROOT = os.path.dirname(os.path.dirname(APP_DIR))
     APP_ROOT = os.path.dirname(APP_DIR)
+    if APP_ROOT not in sys.path:
+        sys.path.insert(0, APP_ROOT)
+    from config import load_threshold_settings
     VALID_DIR = os.path.join(PROJECT_ROOT, 'dataset', 'valid')
     MODEL_PATH = os.path.join(APP_ROOT, 'models', 'best_model.keras')
-    THRESHOLD = 0.44
+    threshold_settings = load_threshold_settings(os.path.join(APP_ROOT, 'models', 'threshold.json'))
+    THRESHOLD = float(threshold_settings["threshold"])
+    REAL_IF_HIGH_PROB = bool(threshold_settings["real_if_high_prob"])
 
     # Load model
     model = tf.keras.models.load_model(MODEL_PATH)
@@ -41,7 +46,10 @@ try:
 
     # Get predictions
     probs = model.predict(val_data, verbose=0).ravel()
-    preds = (probs > THRESHOLD).astype(int)
+    if REAL_IF_HIGH_PROB:
+        preds = (probs > THRESHOLD).astype(int)
+    else:
+        preds = (probs <= THRESHOLD).astype(int)
     true = val_data.classes
 
     # Confusion matrix
@@ -63,6 +71,8 @@ try:
         "",
         f"Validation Accuracy: {acc * 100:.2f}%",
         f"Validation Loss: {loss:.4f}",
+        f"Threshold: {THRESHOLD:.3f}",
+        f"real_if_high_prob: {REAL_IF_HIGH_PROB}",
         "",
         "CONFUSION MATRIX:",
         "            Predicted Fake   Predicted Real",
