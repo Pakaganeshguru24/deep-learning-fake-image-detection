@@ -1,0 +1,8 @@
+Error: File not found: filepath=d:\fake image detection\deep-learning-fake-image-detection\models\best_model.keras. Please ensure the file is an accessible `.keras` zip file.
+Traceback (most recent call last):
+  File "d:\fake image detection\deep-learning-fake-image-detection\app\optional_tools\simple_eval.py", line 20, in <module>
+    model = tf.keras.models.load_model(MODEL_PATH)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\python Anaconda\envs\fakeimg-tf311\Lib\site-packages\keras\src\saving\saving_api.py", line 203, in load_model
+    raise ValueError(
+ValueError: File not found: filepath=d:\fake image detection\deep-learning-fake-image-detection\models\best_model.keras. Please ensure the file is an accessible `.keras` zip file.

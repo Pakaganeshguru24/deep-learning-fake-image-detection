@@ -340,6 +340,11 @@
             color: #fecaca;
         }
 
+        .prediction-badge.uncertain {
+            background: linear-gradient(135deg, rgba(234, 179, 8, 0.22), rgba(217, 119, 6, 0.58));
+            color: #fde68a;
+        }
+
         body.light-mode .prediction-badge.real {
             background: rgba(22, 163, 74, 0.08);
             color: #15803d;
@@ -348,6 +353,17 @@
         body.light-mode .prediction-badge.fake {
             background: rgba(220, 38, 38, 0.08);
             color: #b91c1c;
+        }
+
+        body.light-mode .prediction-badge.uncertain {
+            background: rgba(202, 138, 4, 0.12);
+            color: #a16207;
+        }
+
+        .prediction-note {
+            margin-top: 8px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
         }
 
         .placeholder-text {
@@ -476,8 +492,12 @@
             </div>
 
             <div class="result-body">
+                {% if error %}
+                    <div class="error-message">{{ error }}</div>
+                {% endif %}
+
                 {% if prediction %}
-                    <div class="prediction-badge {% if prediction|lower == 'real' %}real{% else %}fake{% endif %}">
+                    <div class="prediction-badge {% if prediction|lower == 'real' %}real{% elif prediction|lower == 'uncertain' %}uncertain{% else %}fake{% endif %}">
                         {{ prediction }}
                     </div>
 
@@ -493,16 +513,23 @@
                     </div>
                     {% endif %}
 
-                    {% if image %}
-                    <div class="preview-wrapper">
-                        <div class="preview-label">Analyzed image</div>
-                        <div class="preview-frame">
-                            <img src="{{ url_for('static', filename=image) }}" alt="Analyzed image">
-                        </div>
-                    </div>
+                    {% if prediction_note %}
+                    <div class="prediction-note">{{ prediction_note }}</div>
                     {% endif %}
+
                 {% else %}
-                    <p class="placeholder-text">Upload an image on the left to see whether it is predicted as <strong>Real</strong> or <strong>Fake</strong> with a confidence score.</p>
+                    {% if not error %}
+                        <p class="placeholder-text">Upload an image on the left to see whether it is predicted as <strong>Real</strong> or <strong>Fake</strong> with a confidence score.</p>
+                    {% endif %}
+                {% endif %}
+
+                {% if image %}
+                <div class="preview-wrapper">
+                    <div class="preview-label">Uploaded image</div>
+                    <div class="preview-frame">
+                        <img src="{{ url_for('static', filename=image) }}" alt="Uploaded image">
+                    </div>
+                </div>
                 {% endif %}
             </div>
         </section>

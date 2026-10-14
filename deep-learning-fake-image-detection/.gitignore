@@ -138,6 +138,7 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.venv*/
 env/
 venv/
 ENV/
@@ -210,6 +211,16 @@ cython_debug/
 /app/static/*.jpeg
 /app/static/*.png
 /app/static/*.webp
+/app/static/uploads/
+/app/static/archive/
+/app/logs/*.log
+/app/*.txt
+/app/*_report.txt
+/app/models/
+
+# Generated dataset manifests and training metadata
+/metadata.json
+/dataset/
 .cursorignore
 .cursorindexingignore
 
