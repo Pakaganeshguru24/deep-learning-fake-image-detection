@@ -1,9 +1,8 @@
 {
   "pythonVersion": "3.11",
-  "pythonPath": "d:/python Anaconda/envs/fakeimg-tf311/python.exe",
   "typeCheckingMode": "basic",
   "include": [
-    "deep-learning-fake-image-detection"
+    "app"
   ],
   "exclude": [
     "**/node_modules",
@@ -11,6 +10,5 @@
     ".git",
     "**/.venv*/**",
     "**/site-packages/**"
-  ],
-  "venvPath": "d:/python Anaconda/envs/fakeimg-tf311"
+  ]
 }
